@@ -5,14 +5,22 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Label } from "../ui/Label";
 
+import { authService } from "../../modules/auth/authService";
+import { useRouter } from "next/navigation";
+
 export function LoginForm() {
+    const router = useRouter();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: Connect with Supabase authentication in the future
-        console.log("Login attempt:", { username, password });
+        const { user, error } = await authService.login({ username, password });
+        if (user) {
+            router.push("/user/dashboard");
+        } else {
+            console.error("Login failed", error);
+        }
     };
 
     return (
@@ -27,7 +35,7 @@ export function LoginForm() {
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="w-8 h-8 text-[#4caf50]"
+                    className="w-10 h-10 text-[#4caf50]"
                 >
                     <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
                     <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />

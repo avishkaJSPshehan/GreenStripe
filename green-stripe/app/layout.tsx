@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GreenStripe | Login",
-  description: "Login to the GreenStripe application",
+  title: "GreenStripe",
+  description: "Sustainable solutions for a greener world",
 };
 
 export default function RootLayout({
