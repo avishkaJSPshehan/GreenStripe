@@ -1,8 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
-    LineChart,
-    Line,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -11,17 +10,38 @@ import {
     AreaChart,
     Area
 } from "recharts";
-
-const data = [
-    { month: "Jan", cost: 42000 },
-    { month: "Feb", cost: 45000 },
-    { month: "Mar", cost: 38000 },
-    { month: "Apr", cost: 52000 },
-    { month: "May", cost: 48000 },
-    { month: "Jun", cost: 60000 },
-];
+import { supabase } from "@/lib/supabase";
 
 export function InvestmentChart() {
+    const [data, setData] = useState<any[]>([]);
+
+    useEffect(() => {
+        async function fetchFinancialStats() {
+            const { data: finances } = await supabase
+                .from('finances')
+                .select('amount, date, type')
+                .eq('type', 'investment')
+                .order('date', { ascending: true });
+
+            const monthlyData = (finances || []).reduce((acc: any, item: any) => {
+                const date = new Date(item.date);
+                const month = date.toLocaleString('default', { month: 'short' });
+
+                const existing = acc.find((d: any) => d.month === month);
+                if (existing) {
+                    existing.cost += Number(item.amount);
+                } else {
+                    acc.push({ month, cost: Number(item.amount) });
+                }
+                return acc;
+            }, []);
+
+            setData(monthlyData);
+        }
+
+        fetchFinancialStats();
+    }, []);
+
     return (
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-[400px]">
             <h3 className="text-lg font-bold text-gray-900 mb-6">Investment Over Time</h3>

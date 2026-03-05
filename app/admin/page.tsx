@@ -42,10 +42,10 @@ export default function AdminDashboard() {
                 .reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
 
             setStats({
-                totalPlants: plantCount || 500, // Fallback to mock value from image
+                totalPlants: plantCount || 0,
                 netProfit: revenue - investment,
                 estimatedRevenue: revenue,
-                criticalStatus: criticalCount || 252 // Fallback to mock value from image
+                criticalStatus: criticalCount || 0
             });
         }
 
