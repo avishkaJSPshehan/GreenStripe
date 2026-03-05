@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
     LayoutGrid,
     Sprout,
@@ -12,17 +12,24 @@ import {
     MapIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { authService } from "@/modules/auth/authService";
 
 const menuItems = [
     { name: "Dashboard", href: "/admin", icon: LayoutGrid },
     { name: "Plants", href: "/admin/plants", icon: Sprout },
+    { name: "Ground Plans", href: "/admin/ground-plans", icon: MapIcon },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
     { name: "Users", href: "/admin/users", icon: Users },
-    { name: "Ground Plans", href: "/admin/ground-plans", icon: MapIcon },
 ];
 
 export function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await authService.logout();
+        router.replace("/auth/login");
+    };
 
     return (
         <div className="flex flex-col h-screen w-64 bg-[#0B1526] text-white border-r border-white/10">
@@ -58,7 +65,10 @@ export function Sidebar() {
             </nav>
 
             <div className="p-4 border-t border-white/10">
-                <button className="flex items-center gap-3 px-4 py-3 w-full text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 px-4 py-3 w-full text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                >
                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
                         <LogOut className="w-4 h-4" />
                     </div>
