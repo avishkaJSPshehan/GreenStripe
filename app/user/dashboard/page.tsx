@@ -20,14 +20,8 @@ export default function DashboardPage() {
                 return;
             }
 
-            setUser(session.user);
-
-            // Fetch custom profile data
-            const { profile, error } = await authService.getProfile(session.user.id);
-            if (!error) {
-                setProfile(profile);
-            }
-            setLoading(false);
+            // Redirect to the new admin dashboard
+            router.replace("/admin");
         };
 
         fetchUserData();

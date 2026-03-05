@@ -34,7 +34,7 @@ export function LoginForm() {
             } else {
                 const { user, error } = await authService.login({ email, password });
                 if (user) {
-                    router.push("/user/dashboard");
+                    router.push("/admin");
                 } else {
                     setErrorMsg(error || "Invalid login credentials");
                 }
