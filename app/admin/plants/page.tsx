@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus, ChevronLeft, ChevronRight, Search, Loader2, Sprout } from "lucide-react";
 import { PlantCard, Plant } from "@/components/admin/PlantCard";
 import { PlantModal } from "@/components/admin/PlantModal";
+import { AddPlantModal } from "@/components/admin/AddPlantModal";
 import { supabase } from "@/lib/supabase";
 
 const ITEMS_PER_PAGE = 12;
@@ -15,34 +16,35 @@ export default function AdminPlantsPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    async function fetchPlants() {
+        setLoading(true);
+
+        // Get total count
+        const { count } = await supabase
+            .from('plants')
+            .select('*', { count: 'exact', head: true });
+
+        setTotalCount(count || 0);
+
+        // Get paginated data
+        const { data, error } = await supabase
+            .from('plants')
+            .select('*')
+            .order('tag_id', { ascending: true })
+            .range(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE - 1);
+        console.log(data);
+
+        if (error) {
+            console.error("Error fetching plants:", error);
+        } else {
+            setPlants(data || []);
+        }
+        setLoading(false);
+    }
 
     useEffect(() => {
-        async function fetchPlants() {
-            setLoading(true);
-
-            // Get total count
-            const { count } = await supabase
-                .from('plants')
-                .select('*', { count: 'exact', head: true });
-
-            setTotalCount(count || 0);
-
-            // Get paginated data
-            const { data, error } = await supabase
-                .from('plants')
-                .select('*')
-                .order('tag_id', { ascending: true })
-                .range(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE - 1);
-            console.log(data);
-
-            if (error) {
-                console.error("Error fetching plants:", error);
-            } else {
-                setPlants(data || []);
-            }
-            setLoading(false);
-        }
-
         fetchPlants();
     }, [page]);
 
@@ -64,7 +66,10 @@ export default function AdminPlantsPage() {
                     <p className="text-gray-500 mt-1">Track and manage all plants in the farm.</p>
                 </div>
 
-                <button className="flex items-center gap-2 px-6 py-3 bg-[#10B981] text-white font-bold rounded-xl hover:bg-[#0da672] transition-all shadow-lg shadow-[#10B981]/20">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-6 py-3 bg-[#10B981] text-white font-bold rounded-xl hover:bg-[#0da672] transition-all shadow-lg shadow-[#10B981]/20"
+                >
                     <Plus className="w-5 h-5" />
                     Add New Plant
                 </button>
@@ -148,6 +153,12 @@ export default function AdminPlantsPage() {
                 plant={selectedPlant}
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+            />
+
+            <AddPlantModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onSuccess={() => fetchPlants()}
             />
         </div>
     );
