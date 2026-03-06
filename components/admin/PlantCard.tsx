@@ -3,15 +3,41 @@
 import { Calendar, Scale, CircleDollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export interface GrowthLog {
+    id: string;
+    date: string;
+    height_cm: number;
+    leaves_count: number;
+    fruits_count: number;
+}
+
+export interface Treatment {
+    id: string;
+    date: string;
+    type: "Fertilizer" | "Medicine" | string;
+    name: string;
+    quantity: string;
+    cost: number;
+}
+
+export interface Disease {
+    id: string;
+    date: string;
+    disease_name: string;
+    severity: string;
+}
+
 export interface Plant {
     id: string;
     tag_id: string;
     species: string;
     health_status: "Critical" | "Good" | "Medium" | "Weak";
     growth_stage: "Seedling" | "Growing" | "Flowering" | "Fruiting" | "Harvested";
+    planting_date: string;
     harvest_date: string;
     est_yield: number;
     cost: number;
+    revenue: number;
 }
 
 interface PlantCardProps {

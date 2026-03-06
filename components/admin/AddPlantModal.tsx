@@ -18,9 +18,11 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
         species: "",
         health_status: "Good",
         growth_stage: "Seedling",
+        planting_date: new Date().toISOString().split('T')[0],
         harvest_date: "",
         est_yield: "",
         cost: "",
+        revenue: "0",
     });
 
     if (!isOpen) return null;
@@ -36,9 +38,11 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                     species: formData.species,
                     health_status: formData.health_status,
                     growth_stage: formData.growth_stage,
+                    planting_date: formData.planting_date,
                     harvest_date: formData.harvest_date,
                     est_yield: parseFloat(formData.est_yield),
                     cost: parseFloat(formData.cost),
+                    revenue: parseFloat(formData.revenue),
                 },
             ]);
 
@@ -51,9 +55,11 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                 species: "",
                 health_status: "Good",
                 growth_stage: "Seedling",
+                planting_date: new Date().toISOString().split('T')[0],
                 harvest_date: "",
                 est_yield: "",
                 cost: "",
+                revenue: "0",
             });
         } catch (error) {
             console.error("Error adding plant:", error);
@@ -69,9 +75,15 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <div
+            className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto cursor-pointer"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 my-10 cursor-default"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[#10B981]/10 rounded-xl flex items-center justify-center">
                             <Plus className="w-6 h-6 text-[#10B981]" />
@@ -83,7 +95,7 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
                     >
                         <X className="w-5 h-5 text-gray-400" />
                     </button>
@@ -164,6 +176,22 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                             </select>
                         </div>
 
+                        {/* Planting Date */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                <Calendar className="w-3.5 h-3.5" />
+                                Planting Date
+                            </label>
+                            <input
+                                required
+                                type="date"
+                                name="planting_date"
+                                value={formData.planting_date}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium cursor-pointer text-black"
+                            />
+                        </div>
+
                         {/* Harvest Date */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
@@ -199,7 +227,7 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                         </div>
 
                         {/* Cost */}
-                        <div className="col-span-1 md:col-span-2 space-y-2">
+                        <div className="col-span-1 md:col-span-1 space-y-2">
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
                                 <CircleDollarSign className="w-3.5 h-3.5" />
                                 Cost (LKR)
@@ -209,6 +237,23 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                                 type="number"
                                 name="cost"
                                 value={formData.cost}
+                                onChange={handleChange}
+                                placeholder="0"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium text-black placeholder:text-gray-400"
+                            />
+                        </div>
+
+                        {/* Initial Revenue */}
+                        <div className="col-span-1 md:col-span-1 space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                <CircleDollarSign className="w-3.5 h-3.5" />
+                                Initial Revenue (LKR)
+                            </label>
+                            <input
+                                required
+                                type="number"
+                                name="revenue"
+                                value={formData.revenue}
                                 onChange={handleChange}
                                 placeholder="0"
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium text-black placeholder:text-gray-400"
