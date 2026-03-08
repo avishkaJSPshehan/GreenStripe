@@ -23,6 +23,10 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
         est_yield: "",
         cost: "",
         revenue: "0",
+        // Growth log details
+        height_cm: "",
+        leaves_count: "",
+        fruits_count: "",
     });
 
     if (!isOpen) return null;
@@ -32,7 +36,7 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
         setLoading(true);
 
         try {
-            const { error } = await supabase.from("plants").insert([
+            const { data: plantData, error: plantError } = await supabase.from("plants").insert([
                 {
                     tag_id: formData.tag_id,
                     species: formData.species,
@@ -44,9 +48,23 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                     cost: parseFloat(formData.cost),
                     revenue: parseFloat(formData.revenue),
                 },
-            ]);
+            ]).select();
 
-            if (error) throw error;
+            if (plantError) throw plantError;
+
+            // If growth data is provided, insert a growth log
+            if (plantData && (formData.height_cm || formData.leaves_count || formData.fruits_count)) {
+                const { error: logError } = await supabase.from("growth_logs").insert([
+                    {
+                        plant_id: plantData[0].id,
+                        date: formData.planting_date,
+                        height_cm: parseFloat(formData.height_cm) || 0,
+                        leaves_count: parseInt(formData.leaves_count) || 0,
+                        fruits_count: parseInt(formData.fruits_count) || 0,
+                    }
+                ]);
+                if (logError) console.error("Error adding initial growth log:", logError);
+            }
 
             onSuccess();
             onClose();
@@ -60,6 +78,9 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                 est_yield: "",
                 cost: "",
                 revenue: "0",
+                height_cm: "",
+                leaves_count: "",
+                fruits_count: "",
             });
         } catch (error) {
             console.error("Error adding plant:", error);
@@ -80,212 +101,289 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
             onClick={onClose}
         >
             <div
-                className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 my-10 cursor-default"
+                className="bg-[#f8f9fa] w-full max-w-5xl rounded-[32px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8 cursor-default"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#10B981]/10 rounded-xl flex items-center justify-center">
-                            <Plus className="w-6 h-6 text-[#10B981]" />
+                {/* Header Section */}
+                <div className="p-6 bg-white border-b border-gray-100 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-[#10B981]/10 rounded-2xl flex items-center justify-center">
+                            <Plus className="w-7 h-7 text-[#10B981]" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Add New Plant</h2>
-                            <p className="text-sm text-gray-500 font-medium">Enter the details of the new plant.</p>
+                            <h2 className="text-2xl font-black tracking-tight text-gray-900">Add New Plant</h2>
+                            <p className="text-sm text-gray-500 font-medium">Record a new addition to your collection.</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
                     >
-                        <X className="w-5 h-5 text-gray-400" />
+                        <X className="w-6 h-6 text-gray-400" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Tag ID */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <Tag className="w-3.5 h-3.5" />
-                                Tag ID
-                            </label>
-                            <input
-                                required
-                                type="text"
-                                name="tag_id"
-                                value={formData.tag_id}
-                                onChange={handleChange}
-                                placeholder="e.g. PLT-001"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium text-black placeholder:text-gray-400"
-                            />
+                <form onSubmit={handleSubmit} className="p-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Left Column: Details & Financials */}
+                        <div className="lg:col-span-5 space-y-8">
+                            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 space-y-6">
+                                <h3 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2 border-b border-gray-50 pb-4 mb-2">
+                                    Details
+                                </h3>
+
+                                {/* Tag ID & Species */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormItem
+                                        icon={<Tag className="w-4 h-4 text-emerald-500" />}
+                                        label="Tag ID"
+                                        required
+                                    >
+                                        <input
+                                            required
+                                            type="text"
+                                            name="tag_id"
+                                            value={formData.tag_id}
+                                            onChange={handleChange}
+                                            placeholder="PLT-001"
+                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all placeholder:text-gray-300"
+                                        />
+                                    </FormItem>
+                                    <FormItem
+                                        icon={<Sprout className="w-4 h-4 text-emerald-500" />}
+                                        label="Species"
+                                        required
+                                    >
+                                        <input
+                                            required
+                                            type="text"
+                                            name="species"
+                                            value={formData.species}
+                                            onChange={handleChange}
+                                            placeholder="e.g. Tomato"
+                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all placeholder:text-gray-300"
+                                        />
+                                    </FormItem>
+                                </div>
+
+                                <FormItem icon={<Activity className="w-4 h-4 text-[#10B981]" />} label="Current Stage">
+                                    <select
+                                        name="growth_stage"
+                                        value={formData.growth_stage}
+                                        onChange={handleChange}
+                                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="Seedling">Seedling</option>
+                                        <option value="Growing">Growing</option>
+                                        <option value="Flowering">Flowering</option>
+                                        <option value="Fruiting">Fruiting</option>
+                                        <option value="Harvested">Harvested</option>
+                                    </select>
+                                </FormItem>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormItem icon={<Calendar className="w-4 h-4 text-blue-500" />} label="Planting Date" required>
+                                        <input
+                                            required
+                                            type="date"
+                                            name="planting_date"
+                                            value={formData.planting_date}
+                                            onChange={handleChange}
+                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all cursor-pointer"
+                                        />
+                                    </FormItem>
+                                    <FormItem icon={<Calendar className="w-4 h-4 text-orange-500" />} label="Exp. Harvest" required>
+                                        <input
+                                            required
+                                            type="date"
+                                            name="harvest_date"
+                                            value={formData.harvest_date}
+                                            onChange={handleChange}
+                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all cursor-pointer"
+                                        />
+                                    </FormItem>
+                                </div>
+
+                                <FormItem icon={<Scale className="w-4 h-4 text-purple-500" />} label="Est. Yield (kg)" required>
+                                    <input
+                                        required
+                                        type="number"
+                                        step="0.1"
+                                        name="est_yield"
+                                        value={formData.est_yield}
+                                        onChange={handleChange}
+                                        placeholder="0.0"
+                                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all placeholder:text-gray-300"
+                                    />
+                                </FormItem>
+                            </div>
+
+                            {/* Financials Section */}
+                            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 space-y-6">
+                                <h3 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2 border-b border-gray-50 pb-4 mb-2">
+                                    Financials
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormItem icon={<CircleDollarSign className="w-4 h-4 text-gray-400" />} label="Total Cost (LKR)" required>
+                                        <input
+                                            required
+                                            type="number"
+                                            name="cost"
+                                            value={formData.cost}
+                                            onChange={handleChange}
+                                            placeholder="0"
+                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all placeholder:text-gray-300"
+                                        />
+                                    </FormItem>
+                                    <FormItem icon={<CircleDollarSign className="w-4 h-4 text-emerald-500" />} label="Revenue (LKR)">
+                                        <input
+                                            type="number"
+                                            name="revenue"
+                                            value={formData.revenue}
+                                            onChange={handleChange}
+                                            placeholder="0"
+                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all placeholder:text-gray-300"
+                                        />
+                                    </FormItem>
+                                </div>
+                                <div className={cn(
+                                    "p-4 rounded-2xl flex justify-between items-center",
+                                    (parseFloat(formData.revenue || "0") - parseFloat(formData.cost || "0")) >= 0 ? "bg-green-50/50" : "bg-red-50/50"
+                                )}>
+                                    <div className="flex items-center gap-2">
+                                        <div className={cn(
+                                            "w-7 h-7 rounded-lg flex items-center justify-center",
+                                            (parseFloat(formData.revenue || "0") - parseFloat(formData.cost || "0")) >= 0 ? "bg-green-100/50 text-green-600" : "bg-red-100/50 text-red-600"
+                                        )}>
+                                            <CircleDollarSign className="w-4 h-4" />
+                                        </div>
+                                        <span className="text-xs font-bold text-gray-500">Est. Profit/Loss</span>
+                                    </div>
+                                    <span className={cn(
+                                        "text-lg font-black",
+                                        (parseFloat(formData.revenue || "0") - parseFloat(formData.cost || "0")) >= 0 ? "text-green-600" : "text-red-600"
+                                    )}>
+                                        LKR {(parseFloat(formData.revenue || "0") - parseFloat(formData.cost || "0")).toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Species */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <Sprout className="w-3.5 h-3.5" />
-                                Species
-                            </label>
-                            <input
-                                required
-                                type="text"
-                                name="species"
-                                value={formData.species}
-                                onChange={handleChange}
-                                placeholder="e.g. Tomato"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium text-black placeholder:text-gray-400"
-                            />
-                        </div>
+                        {/* Right Column: Growth Logs & Measurements */}
+                        <div className="lg:col-span-7 space-y-8">
+                            <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 h-full flex flex-col">
+                                <h3 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2 border-b border-gray-50 pb-4 mb-6">
+                                    Initial measurements
+                                </h3>
 
-                        {/* Health Status */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <Activity className="w-3.5 h-3.5" />
-                                Health Status
-                            </label>
-                            <select
-                                name="health_status"
-                                value={formData.health_status}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium appearance-none cursor-pointer text-black"
-                            >
-                                <option value="Good">Good</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Weak">Weak</option>
-                                <option value="Critical">Critical</option>
-                            </select>
-                        </div>
+                                <div className="space-y-8 flex-1">
+                                    <div className="p-8 rounded-[24px] bg-[#f8f9fa] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center space-y-4">
+                                        <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-2">
+                                            <Scale className="w-8 h-8 text-gray-300" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-gray-900">Record Initial Growth</p>
+                                            <p className="text-xs text-gray-500 font-medium">Capture the current state of the seedling.</p>
+                                        </div>
+                                    </div>
 
-                        {/* Growth Stage */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <Activity className="w-3.5 h-3.5" />
-                                Growth Stage
-                            </label>
-                            <select
-                                name="growth_stage"
-                                value={formData.growth_stage}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium appearance-none cursor-pointer text-black"
-                            >
-                                <option value="Seedling">Seedling</option>
-                                <option value="Growing">Growing</option>
-                                <option value="Flowering">Flowering</option>
-                                <option value="Fruiting">Fruiting</option>
-                                <option value="Harvested">Harvested</option>
-                            </select>
-                        </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <FormItem label="Height (cm)">
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                name="height_cm"
+                                                value={formData.height_cm}
+                                                onChange={handleChange}
+                                                placeholder="0.0"
+                                                className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all placeholder:text-gray-300"
+                                            />
+                                        </FormItem>
+                                        <FormItem label="Leaves">
+                                            <input
+                                                type="number"
+                                                name="leaves_count"
+                                                value={formData.leaves_count}
+                                                onChange={handleChange}
+                                                placeholder="0"
+                                                className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all placeholder:text-gray-300"
+                                            />
+                                        </FormItem>
+                                        <FormItem label="Fruits">
+                                            <input
+                                                type="number"
+                                                name="fruits_count"
+                                                value={formData.fruits_count}
+                                                onChange={handleChange}
+                                                placeholder="0"
+                                                className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all placeholder:text-gray-300"
+                                            />
+                                        </FormItem>
+                                    </div>
 
-                        {/* Planting Date */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <Calendar className="w-3.5 h-3.5" />
-                                Planting Date
-                            </label>
-                            <input
-                                required
-                                type="date"
-                                name="planting_date"
-                                value={formData.planting_date}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium cursor-pointer text-black"
-                            />
-                        </div>
+                                    <FormItem icon={<Activity className="w-4 h-4 text-emerald-500" />} label="Health Status">
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {["Good", "Medium", "Weak", "Critical"].map((status) => (
+                                                <button
+                                                    key={status}
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, health_status: status }))}
+                                                    className={cn(
+                                                        "py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border-2",
+                                                        formData.health_status === status
+                                                            ? "bg-[#10B981] text-white border-[#10B981] shadow-lg shadow-[#10B981]/20"
+                                                            : "bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100"
+                                                    )}
+                                                >
+                                                    {status}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </FormItem>
+                                </div>
 
-                        {/* Harvest Date */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <Calendar className="w-3.5 h-3.5" />
-                                Estimated Harvest Date
-                            </label>
-                            <input
-                                required
-                                type="date"
-                                name="harvest_date"
-                                value={formData.harvest_date}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium cursor-pointer text-black"
-                            />
+                                <div className="mt-8 flex items-center gap-4 pt-6 border-t border-gray-50">
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        className="flex-1 px-8 py-4 bg-white border border-gray-200 text-gray-600 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-gray-50 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="flex-[2] flex items-center justify-center gap-3 px-8 py-4 bg-[#10B981] text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-[#0da672] transition-all shadow-xl shadow-[#10B981]/25 disabled:opacity-50"
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            "Confirm & Save Plant"
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-
-                        {/* Estimated Yield */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <Scale className="w-3.5 h-3.5" />
-                                Estimated Yield (kg)
-                            </label>
-                            <input
-                                required
-                                type="number"
-                                step="0.1"
-                                name="est_yield"
-                                value={formData.est_yield}
-                                onChange={handleChange}
-                                placeholder="0.0"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium text-black placeholder:text-gray-400"
-                            />
-                        </div>
-
-                        {/* Cost */}
-                        <div className="col-span-1 md:col-span-1 space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <CircleDollarSign className="w-3.5 h-3.5" />
-                                Cost (LKR)
-                            </label>
-                            <input
-                                required
-                                type="number"
-                                name="cost"
-                                value={formData.cost}
-                                onChange={handleChange}
-                                placeholder="0"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium text-black placeholder:text-gray-400"
-                            />
-                        </div>
-
-                        {/* Initial Revenue */}
-                        <div className="col-span-1 md:col-span-1 space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                <CircleDollarSign className="w-3.5 h-3.5" />
-                                Initial Revenue (LKR)
-                            </label>
-                            <input
-                                required
-                                type="number"
-                                name="revenue"
-                                value={formData.revenue}
-                                onChange={handleChange}
-                                placeholder="0"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition-all font-medium text-black placeholder:text-gray-400"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="pt-4 flex items-center gap-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 px-6 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-all font-medium"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="flex-[2] flex items-center justify-center gap-2 px-6 py-3 bg-[#10B981] text-white font-bold rounded-xl hover:bg-[#0da672] transition-all shadow-lg shadow-[#10B981]/20 disabled:opacity-50"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Saving...
-                                </>
-                            ) : (
-                                "Save Plant"
-                            )}
-                        </button>
                     </div>
                 </form>
             </div>
         </div>
     );
 }
+
+function FormItem({ icon, label, children, required }: { icon?: React.ReactNode, label: string, children: React.ReactNode, required?: boolean }) {
+    return (
+        <div className="space-y-2">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                {icon}
+                {label}
+                {required && <span className="text-red-400">*</span>}
+            </label>
+            {children}
+        </div>
+    );
+}
+
