@@ -17,36 +17,40 @@ export default function AdminPlantsPage() {
     const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     async function fetchPlants() {
         setLoading(true);
 
-        // Get total count
-        const { count } = await supabase
-            .from('plants')
-            .select('*', { count: 'exact', head: true });
+        try {
+            let query = supabase.from('plants').select('*', { count: 'exact' });
 
-        setTotalCount(count || 0);
+            if (searchQuery) {
+                query = query.or(`species.ilike.%${searchQuery}%,tag_id.ilike.%${searchQuery}%,health_status.ilike.%${searchQuery}%,growth_stage.ilike.%${searchQuery}%`);
+            }
 
-        // Get paginated data
-        const { data, error } = await supabase
-            .from('plants')
-            .select('*')
-            .order('tag_id', { ascending: true })
-            .range(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE - 1);
-        console.log(data);
+            const { data, count, error } = await query
+                .order('tag_id', { ascending: true })
+                .range(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE - 1);
 
-        if (error) {
-            console.error("Error fetching plants:", error);
-        } else {
+            if (error) throw error;
+
+            setTotalCount(count || 0);
             setPlants(data || []);
+        } catch (error: any) {
+            console.error("Error fetching plants:", error.message || error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }
 
     useEffect(() => {
-        fetchPlants();
-    }, [page]);
+        const timer = setTimeout(() => {
+            fetchPlants();
+        }, 300); // 300ms debounce
+
+        return () => clearTimeout(timer);
+    }, [page, searchQuery]);
 
     const handleCardClick = (plant: Plant) => {
         setSelectedPlant(plant);
@@ -81,8 +85,13 @@ export default function AdminPlantsPage() {
                 </span>
                 <input
                     type="text"
-                    placeholder="Search species or Tag ID..."
-                    className="flex-1 py-2 outline-none text-sm font-medium placeholder:text-gray-600"
+                    placeholder="Search species, ID, status or stage..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setPage(0); // Reset to first page on search
+                    }}
+                    className="flex-1 py-2 outline-none text-sm font-medium text-black placeholder:text-gray-400"
                 />
             </div>
 
