@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Calendar, Scale, CircleDollarSign, Tag, Sprout, Activity, Trash2, Edit3, Plus, ArrowUpRight, TrendingDown } from "lucide-react";
+import { X, Calendar, Scale, CircleDollarSign, Tag, Sprout, Activity, Trash2, Edit3, Plus, ArrowUpRight, TrendingDown, Loader2 } from "lucide-react";
 import { Plant, GrowthLog, Treatment, Disease } from "./PlantCard";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -10,13 +10,16 @@ interface PlantModalProps {
     plant: Plant | null;
     isOpen: boolean;
     onClose: () => void;
+    onEdit?: (plant: Plant) => void;
+    onDeleteSuccess?: () => void;
 }
 
-export function PlantModal({ plant, isOpen, onClose }: PlantModalProps) {
+export function PlantModal({ plant, isOpen, onClose, onEdit, onDeleteSuccess }: PlantModalProps) {
     const [growthLogs, setGrowthLogs] = useState<GrowthLog[]>([]);
     const [treatments, setTreatments] = useState<Treatment[]>([]);
     const [diseases, setDiseases] = useState<Disease[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         if (isOpen && plant) {
@@ -42,6 +45,58 @@ export function PlantModal({ plant, isOpen, onClose }: PlantModalProps) {
             console.error("Error fetching plant child data:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!plant) return;
+
+        const confirmDelete = confirm(`Are you sure you want to delete plant ${plant.tag_id}?`);
+        if (!confirmDelete) return;
+
+        setIsDeleting(true);
+
+        try {
+            // 1. Cleanup related records
+            await supabase.from('growth_logs').delete().eq('plant_id', plant.id);
+            await supabase.from('treatments').delete().eq('plant_id', plant.id);
+            await supabase.from('diseases').delete().eq('plant_id', plant.id);
+
+            // 2. Delete the plant record
+            // We use .select() because 'count' often returns 0 when RLS is enabled
+            // If the row is deleted and returned, we know it worked.
+            const { data: idDeleted, error: idError } = await supabase
+                .from('plants')
+                .delete()
+                .eq('id', plant.id)
+                .select();
+
+            if (idError) throw idError;
+
+            // 3. Fallback to tag_id if ID delete didn't return data
+            if (!idDeleted || idDeleted.length === 0) {
+                const { data: tagDeleted, error: tagError } = await supabase
+                    .from('plants')
+                    .delete()
+                    .eq('tag_id', plant.tag_id)
+                    .select();
+
+                if (tagError) throw tagError;
+
+                if (!tagDeleted || tagDeleted.length === 0) {
+                    throw new Error("Deletion failed. \n\nThis is likely because Supabase Row Level Security (RLS) is blocking the DELETE action for this table. Ensure you have a 'DELETE' policy enabled.");
+                }
+            }
+
+            alert(`Plant ${plant.tag_id} deleted successfully.`);
+            onDeleteSuccess?.();
+            onClose();
+
+        } catch (error: any) {
+            console.error("Deletion Error:", error);
+            alert(`Delete Failed: ${error.message}`);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -86,11 +141,18 @@ export function PlantModal({ plant, isOpen, onClose }: PlantModalProps) {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-all font-bold text-sm">
-                            <Trash2 className="w-4 h-4" />
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-all font-bold text-sm disabled:opacity-50"
+                        >
+                            {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                             Delete
                         </button>
-                        <button className="flex items-center gap-2 px-6 py-2.5 bg-[#10B981] text-white hover:bg-[#0da672] rounded-xl transition-all font-bold shadow-lg shadow-[#10B981]/20">
+                        <button
+                            onClick={() => plant && onEdit?.(plant)}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-[#10B981] text-white hover:bg-[#0da672] rounded-xl transition-all font-bold shadow-lg shadow-[#10B981]/20"
+                        >
                             <Edit3 className="w-4 h-4" />
                             Edit Plant
                         </button>

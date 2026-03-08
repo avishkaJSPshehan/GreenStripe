@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Plus, Loader2, Tag, Sprout, Activity, Calendar, Scale, CircleDollarSign } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -9,9 +9,10 @@ interface AddPlantModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    plantToEdit?: any; // Added to support editing
 }
 
-export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps) {
+export function AddPlantModal({ isOpen, onClose, onSuccess, plantToEdit }: AddPlantModalProps) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         tag_id: "",
@@ -29,6 +30,41 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
         fruits_count: "",
     });
 
+    // Initialize form when editing
+    useEffect(() => {
+        if (plantToEdit && isOpen) {
+            setFormData({
+                tag_id: plantToEdit.tag_id || "",
+                species: plantToEdit.species || "",
+                health_status: plantToEdit.health_status || "Good",
+                growth_stage: plantToEdit.growth_stage || "Seedling",
+                planting_date: plantToEdit.planting_date || new Date().toISOString().split('T')[0],
+                harvest_date: plantToEdit.harvest_date || "",
+                est_yield: plantToEdit.est_yield?.toString() || "",
+                cost: plantToEdit.cost?.toString() || "",
+                revenue: plantToEdit.revenue?.toString() || "0",
+                height_cm: "",
+                leaves_count: "",
+                fruits_count: "",
+            });
+        } else if (!plantToEdit && isOpen) {
+            setFormData({
+                tag_id: "",
+                species: "",
+                health_status: "Good",
+                growth_stage: "Seedling",
+                planting_date: new Date().toISOString().split('T')[0],
+                harvest_date: "",
+                est_yield: "",
+                cost: "",
+                revenue: "0",
+                height_cm: "",
+                leaves_count: "",
+                fruits_count: "",
+            });
+        }
+    }, [plantToEdit, isOpen]);
+
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -36,34 +72,55 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
         setLoading(true);
 
         try {
-            const { data: plantData, error: plantError } = await supabase.from("plants").insert([
-                {
-                    tag_id: formData.tag_id,
-                    species: formData.species,
-                    health_status: formData.health_status,
-                    growth_stage: formData.growth_stage,
-                    planting_date: formData.planting_date,
-                    harvest_date: formData.harvest_date,
-                    est_yield: parseFloat(formData.est_yield),
-                    cost: parseFloat(formData.cost),
-                    revenue: parseFloat(formData.revenue),
-                },
-            ]).select();
+            if (plantToEdit) {
+                // Update existing plant
+                const { error } = await supabase
+                    .from("plants")
+                    .update({
+                        tag_id: formData.tag_id,
+                        species: formData.species,
+                        health_status: formData.health_status,
+                        growth_stage: formData.growth_stage,
+                        planting_date: formData.planting_date,
+                        harvest_date: formData.harvest_date,
+                        est_yield: parseFloat(formData.est_yield),
+                        cost: parseFloat(formData.cost),
+                        revenue: parseFloat(formData.revenue),
+                    })
+                    .eq('id', plantToEdit.id);
 
-            if (plantError) throw plantError;
-
-            // If growth data is provided, insert a growth log
-            if (plantData && (formData.height_cm || formData.leaves_count || formData.fruits_count)) {
-                const { error: logError } = await supabase.from("growth_logs").insert([
+                if (error) throw error;
+            } else {
+                // Insert new plant
+                const { data: plantData, error: plantError } = await supabase.from("plants").insert([
                     {
-                        plant_id: plantData[0].id,
-                        date: formData.planting_date,
-                        height_cm: parseFloat(formData.height_cm) || 0,
-                        leaves_count: parseInt(formData.leaves_count) || 0,
-                        fruits_count: parseInt(formData.fruits_count) || 0,
-                    }
-                ]);
-                if (logError) console.error("Error adding initial growth log:", logError);
+                        tag_id: formData.tag_id,
+                        species: formData.species,
+                        health_status: formData.health_status,
+                        growth_stage: formData.growth_stage,
+                        planting_date: formData.planting_date,
+                        harvest_date: formData.harvest_date,
+                        est_yield: parseFloat(formData.est_yield),
+                        cost: parseFloat(formData.cost),
+                        revenue: parseFloat(formData.revenue),
+                    },
+                ]).select();
+
+                if (plantError) throw plantError;
+
+                // If growth data is provided, insert a growth log
+                if (plantData && (formData.height_cm || formData.leaves_count || formData.fruits_count)) {
+                    const { error: logError } = await supabase.from("growth_logs").insert([
+                        {
+                            plant_id: plantData[0].id,
+                            date: formData.planting_date,
+                            height_cm: parseFloat(formData.height_cm) || 0,
+                            leaves_count: parseInt(formData.leaves_count) || 0,
+                            fruits_count: parseInt(formData.fruits_count) || 0,
+                        }
+                    ]);
+                    if (logError) console.error("Error adding initial growth log:", logError);
+                }
             }
 
             onSuccess();
@@ -111,8 +168,12 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                             <Plus className="w-7 h-7 text-[#10B981]" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black tracking-tight text-gray-900">Add New Plant</h2>
-                            <p className="text-sm text-gray-500 font-medium">Record a new addition to your collection.</p>
+                            <h2 className="text-2xl font-black tracking-tight text-gray-900">
+                                {plantToEdit ? "Update Plant Details" : "Add New Plant"}
+                            </h2>
+                            <p className="text-sm text-gray-500 font-medium">
+                                {plantToEdit ? `Modifying plant ${plantToEdit.tag_id}` : "Record a new addition to your collection."}
+                            </p>
                         </div>
                     </div>
                     <button
@@ -361,7 +422,7 @@ export function AddPlantModal({ isOpen, onClose, onSuccess }: AddPlantModalProps
                                                 Processing...
                                             </>
                                         ) : (
-                                            "Confirm & Save Plant"
+                                            plantToEdit ? "Update Plant" : "Confirm & Save Plant"
                                         )}
                                     </button>
                                 </div>

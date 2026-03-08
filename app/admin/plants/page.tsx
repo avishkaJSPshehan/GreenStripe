@@ -162,12 +162,25 @@ export default function AdminPlantsPage() {
                 plant={selectedPlant}
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                onEdit={() => {
+                    setIsModalOpen(false);
+                    setIsAddModalOpen(true);
+                }}
+                onDeleteSuccess={fetchPlants}
             />
 
             <AddPlantModal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
-                onSuccess={() => fetchPlants()}
+                onSuccess={() => {
+                    fetchPlants();
+                    if (selectedPlant) {
+                        // Update the selected plant in the view modal if it was open
+                        const updated = plants.find(p => p.id === selectedPlant.id);
+                        if (updated) setSelectedPlant(updated);
+                    }
+                }}
+                plantToEdit={selectedPlant}
             />
         </div>
     );
