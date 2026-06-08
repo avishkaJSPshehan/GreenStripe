@@ -51,6 +51,14 @@ export default function AdminPlantsPage() {
 
         return () => clearTimeout(timer);
     }, [page, searchQuery]);
+    
+    // Sync selected plant with updated data from the list
+    useEffect(() => {
+        if (selectedPlant) {
+            const updated = plants.find(p => p.id === selectedPlant.id);
+            if (updated) setSelectedPlant(updated);
+        }
+    }, [plants]);
 
     const handleCardClick = (plant: Plant) => {
         setSelectedPlant(plant);
@@ -167,19 +175,13 @@ export default function AdminPlantsPage() {
                     setIsAddModalOpen(true);
                 }}
                 onDeleteSuccess={fetchPlants}
+                onUpdate={fetchPlants}
             />
 
             <AddPlantModal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
-                onSuccess={() => {
-                    fetchPlants();
-                    if (selectedPlant) {
-                        // Update the selected plant in the view modal if it was open
-                        const updated = plants.find(p => p.id === selectedPlant.id);
-                        if (updated) setSelectedPlant(updated);
-                    }
-                }}
+                onSuccess={fetchPlants}
                 plantToEdit={selectedPlant}
             />
         </div>

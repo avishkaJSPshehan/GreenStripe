@@ -285,7 +285,7 @@ export function AddPlantModal({ isOpen, onClose, onSuccess, plantToEdit }: AddPl
                                     Financials
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <FormItem icon={<CircleDollarSign className="w-4 h-4 text-gray-400" />} label="Total Cost (LKR)" required>
+                                    <FormItem icon={<CircleDollarSign className="w-4 h-4 text-gray-400" />} label="Total Cost (Rs.)" required>
                                         <input
                                             required
                                             type="number"
@@ -296,7 +296,7 @@ export function AddPlantModal({ isOpen, onClose, onSuccess, plantToEdit }: AddPl
                                             className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#10B981]/10 transition-all placeholder:text-gray-300"
                                         />
                                     </FormItem>
-                                    <FormItem icon={<CircleDollarSign className="w-4 h-4 text-emerald-500" />} label="Revenue (LKR)">
+                                    <FormItem icon={<CircleDollarSign className="w-4 h-4 text-emerald-500" />} label="Revenue (Rs.)">
                                         <input
                                             type="number"
                                             name="revenue"
@@ -324,7 +324,7 @@ export function AddPlantModal({ isOpen, onClose, onSuccess, plantToEdit }: AddPl
                                         "text-lg font-black",
                                         (parseFloat(formData.revenue || "0") - parseFloat(formData.cost || "0")) >= 0 ? "text-green-600" : "text-red-600"
                                     )}>
-                                        LKR {(parseFloat(formData.revenue || "0") - parseFloat(formData.cost || "0")).toLocaleString()}
+                                        Rs. {(parseFloat(formData.revenue || "0") - parseFloat(formData.cost || "0")).toLocaleString()}
                                     </span>
                                 </div>
                             </div>
