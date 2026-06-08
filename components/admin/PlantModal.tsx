@@ -5,6 +5,7 @@ import { X, Calendar, Scale, CircleDollarSign, Tag, Sprout, Activity, Trash2, Ed
 import { Plant, GrowthLog, Treatment, Disease } from "./PlantCard";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { AddTreatmentModal } from "./AddTreatmentModal";
 
 interface PlantModalProps {
     plant: Plant | null;
@@ -12,14 +13,16 @@ interface PlantModalProps {
     onClose: () => void;
     onEdit?: (plant: Plant) => void;
     onDeleteSuccess?: () => void;
+    onUpdate?: () => void;
 }
 
-export function PlantModal({ plant, isOpen, onClose, onEdit, onDeleteSuccess }: PlantModalProps) {
+export function PlantModal({ plant, isOpen, onClose, onEdit, onDeleteSuccess, onUpdate }: PlantModalProps) {
     const [growthLogs, setGrowthLogs] = useState<GrowthLog[]>([]);
     const [treatments, setTreatments] = useState<Treatment[]>([]);
     const [diseases, setDiseases] = useState<Disease[]>([]);
     const [loading, setLoading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isTreatmentModalOpen, setIsTreatmentModalOpen] = useState(false);
 
     useEffect(() => {
         if (isOpen && plant) {
@@ -170,7 +173,7 @@ export function PlantModal({ plant, isOpen, onClose, onEdit, onDeleteSuccess }: 
                                 <DetailItem icon={<Calendar className="w-4 h-4 text-orange-500" />} label="Exp. Harvest" value={plant.harvest_date} />
                                 <DetailItem icon={<Sprout className="w-4 h-4 text-[#10B981]" />} label="Current Stage" value={plant.growth_stage} />
                                 <DetailItem icon={<ArrowUpRight className="w-4 h-4 text-purple-500" />} label="Est. Yield" value={`${plant.est_yield} kg`} />
-                                <DetailItem icon={<CircleDollarSign className="w-4 h-4 text-gray-400" />} label="Total Cost" value={`$${plant.cost.toLocaleString()}`} />
+                                <DetailItem icon={<CircleDollarSign className="w-4 h-4 text-gray-400" />} label="Total Cost" value={`Rs. ${plant.cost.toLocaleString()}`} />
                             </div>
                         </div>
 
@@ -185,7 +188,7 @@ export function PlantModal({ plant, isOpen, onClose, onEdit, onDeleteSuccess }: 
                                         </div>
                                         <span className="text-sm font-bold text-gray-500">Revenue</span>
                                     </div>
-                                    <span className="text-xl font-black text-[#10B981]">${plant.revenue?.toLocaleString() || '0'}</span>
+                                    <span className="text-xl font-black text-[#10B981]">Rs. ${plant.revenue?.toLocaleString() || '0'}</span>
                                 </div>
                                 <div className={cn("flex justify-between items-center p-4 rounded-2xl", isProfitable ? "bg-green-50/50" : "bg-red-50/50")}>
                                     <div className="flex items-center gap-3">
@@ -195,7 +198,7 @@ export function PlantModal({ plant, isOpen, onClose, onEdit, onDeleteSuccess }: 
                                         <span className="text-sm font-bold text-gray-700">Profit/Loss</span>
                                     </div>
                                     <span className={cn("text-xl font-black", isProfitable ? "text-green-600" : "text-red-600")}>
-                                        {isProfitable ? "" : "-"}${Math.abs(profitLoss).toLocaleString()}
+                                        {isProfitable ? "" : "-"}Rs. ${Math.abs(profitLoss).toLocaleString()}
                                     </span>
                                 </div>
                             </div>
@@ -233,7 +236,7 @@ export function PlantModal({ plant, isOpen, onClose, onEdit, onDeleteSuccess }: 
                         </SectionCard>
 
                         {/* Treatments & Applications */}
-                        <SectionCard title="Treatments & Applications" action={<button className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[#10B981] hover:text-[#0da672]"><Plus className="w-3 h-3" /> Add Treatment</button>}>
+                        <SectionCard title="Treatments & Applications" action={<button onClick={() => setIsTreatmentModalOpen(true)} className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[#10B981] hover:text-[#0da672]"><Plus className="w-3 h-3" /> Add Treatment</button>}>
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-50">
@@ -255,7 +258,7 @@ export function PlantModal({ plant, isOpen, onClose, onEdit, onDeleteSuccess }: 
                                             </td>
                                             <td className="py-4 text-gray-900">{item.name}</td>
                                             <td className="py-4 text-right text-gray-600">{item.quantity}</td>
-                                            <td className="py-4 text-right text-gray-900">${item.cost.toLocaleString()}</td>
+                                            <td className="py-4 text-right text-gray-900">Rs. ${item.cost.toLocaleString()}</td>
                                         </tr>
                                     )) : (
                                         <tr>
@@ -301,6 +304,16 @@ export function PlantModal({ plant, isOpen, onClose, onEdit, onDeleteSuccess }: 
                     </div>
                 </div>
             </div>
+
+            <AddTreatmentModal
+                isOpen={isTreatmentModalOpen}
+                onClose={() => setIsTreatmentModalOpen(false)}
+                onSuccess={() => {
+                    fetchChildData();
+                    onUpdate?.();
+                }}
+                plant={plant}
+            />
         </div>
     );
 }
